@@ -1,6 +1,7 @@
 local moonshine = require 'moonshine'
 require 'Map'
 require 'Player'
+require 'Enemy'
 
 resolution = {16, 15}
 realRes = {256, 240}
@@ -8,11 +9,14 @@ scale = 1
 origin = {0, 0}
 camera = {0, 0}
 maps = {}
-mapWidth = 2
+mapWidth = 3
 debug = ""
+messages = {}
+showNodeMap = false
+pathfindDist = 30
 
-enemies = {}
 currentMap = 1
+menu = "game"
 
 function love.load()
   love.window.setMode(resolution[1], resolution[2], {fullscreen = true})
@@ -22,20 +26,25 @@ function love.load()
   scale = realRes[2] / resolution[2]
   origin[1] = (width / 2) - (realRes[1] / 2)
 
-  table.insert(maps, Map:create("Map1"))
-  table.insert(maps, Map:create("Map2"))
-  table.insert(maps, Map:create("Map2"))
-  table.insert(maps, Map:create("Map2"))
+  for y = 1, mapWidth do
+    for x = 1, mapWidth do
+      table.insert(maps, Map:create("Map" .. y .. "-" .. x))
+    end
+  end
 
   Player.load()
-
   love.graphics.setScissor(origin[1], origin[2], realRes[1], realRes[2])
   love.graphics.setDefaultFilter("nearest", "nearest")
   love.graphics.setColor(1, 1, 1)
+  font = love.graphics.newFont("joystix.monospace.ttf", scale)
+  love.graphics.setFont(font)
+  love.graphics.setLineWidth(scale/16)
+  love.graphics.setLineStyle("smooth")
 
   effect = moonshine(moonshine.effects.glow)
                     .chain(moonshine.effects.vignette)
                     .chain(moonshine.effects.crt)
+  updatePath()
 end
 
 function love.update(dt)
@@ -56,6 +65,10 @@ function love.update(dt)
 end
 
 function love.keypressed(key, scancode, isrepeat)
+  if menu == "updates" then
+    menu = "game"
+    return
+  end
   local input = nil
 
   if scancode == "q" or key == "7" then
@@ -76,14 +89,36 @@ function love.keypressed(key, scancode, isrepeat)
     input = "d"
   elseif scancode == "c" or key == "3" then
     input = "dr"
+  elseif scancode == "m" then
+    menu = "messages"
+    return
   end
-  if input then
-    Player.update(input)
-    for index, enemy in pairs(enemies) do
 
+  if input and menu == "game" then
+    Player.update(input)
+    Enemy.createQueue()
+    for index, enemy in pairs(Enemy.enemyQueue) do
+      if enemy.moveclock >= 1 then
+        if Enemy.move(enemy) then
+          enemy.moveclock = enemy.moveclock - 1
+          if enemy.moveclock >= 1 then
+            table.insert(Enemy.enemyQueue, enemy)
+          end
+        else
+          table.insert(Enemy.enemyQueue, enemy)
+        end
+      end
     end
     for index, map in pairs(maps) do
-      if index == currentMap or index == currentMap - mapWidth or index == currentMap + mapWidth or (index == currentMap - 1 and currentMap % mapWidth ~= 1) or (index == currentMap + 1 and currentMap % mapWidth ~= 0) then
+      if index == currentMap or
+        index == currentMap - mapWidth or
+        index == currentMap + mapWidth or
+        (index == currentMap - 1 and currentMap % mapWidth ~= 1) or
+        (index == currentMap + 1 and currentMap % mapWidth ~= 0) or
+        (index == currentMap - mapWidth - 1 and currentMap % mapWidth ~= 1) or
+        (index == currentMap - mapWidth + 1 and currentMap % mapWidth ~= 0) or
+        (index == currentMap + mapWidth - 1 and currentMap % mapWidth ~= 1) or
+        (index == currentMap + mapWidth + 1 and currentMap % mapWidth ~= 0) then
         map.active = true
       else
         map.active = false
@@ -94,10 +129,46 @@ end
 
 function love.draw()
   effect(function()
-    for index, map in pairs(maps) do
-      map:draw()
+    if menu == "game" then
+      for index, enemy in pairs(Enemy.enemies) do
+        if maps[enemy.currentMap].active then
+          Enemy.draw(enemy)
+        end
+      end
+
+      Player.draw()
+      for index, map in pairs(maps) do
+        map:draw()
+      end
+      love.graphics.setColor(0, 0, 0)
+      love.graphics.rectangle("fill", origin[1], realRes[2] - scale, realRes[1], scale)
+      if messages[2] then
+        love.graphics.setColor(0.5, 0.5, 0.5)
+        love.graphics.print(messages[2], origin[1], realRes[2] - scale, 0, 0.5)
+      end
+      love.graphics.setColor(1, 1, 1)
+      if messages[1] then
+        love.graphics.print(messages[1], origin[1], realRes[2] - (scale/2), 0, 0.5)
+      end
+    elseif menu == "messages" then
+      if messages[1] then
+      end
+
+      for index, message in pairs(messages) do
+        love.graphics.print(message, origin[1], realRes[2] - (scale/2) * index, 0, 0.5)
+        if index == 1 then
+          love.graphics.setColor(0.5, 0.5, 0.5)
+        end
+      end
+      love.graphics.setColor(1, 1, 1)
     end
-    Player.draw()
   end)
-  love.graphics.print(debug, origin[1], origin[2], 0, scale / 16)
+  love.graphics.print(debug, origin[1], origin[2])
+end
+
+function pushMessage(text)
+  table.insert(messages, 1, text)
+  while #messages > 30 do
+    messages[#messages] = nil
+  end
 end

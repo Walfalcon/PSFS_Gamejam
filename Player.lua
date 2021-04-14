@@ -1,14 +1,20 @@
 Player = {}
 Player.x = 3
 Player.y = 3
+Player.weaponDamage = 1
 
 function Player.load()
-  Player.sprite = love.graphics.newImage("Assets/statue face.bmp")
-  local width = Player.sprite:getDimensions()
-  Player.scale = scale / width
   currentMap = math.floor(Player.x / Map.width) + math.floor(Player.y / Map.width) * mapWidth + 1
   for index, map in pairs(maps) do
-    if index == currentMap or index == currentMap - mapWidth or index == currentMap + mapWidth or (index == currentMap - 1 and currentMap % mapWidth ~= 1) or (index == currentMap + 1 and currentMap % mapWidth ~= 0) then
+    if index == currentMap or
+      index == currentMap - mapWidth or
+      index == currentMap + mapWidth or
+      (index == currentMap - 1 and currentMap % mapWidth ~= 1) or
+      (index == currentMap + 1 and currentMap % mapWidth ~= 0) or
+      (index == currentMap - mapWidth - 1 and currentMap % mapWidth ~= 1) or
+      (index == currentMap - mapWidth + 1 and currentMap % mapWidth ~= 0) or
+      (index == currentMap + mapWidth - 1 and currentMap % mapWidth ~= 1) or
+      (index == currentMap + mapWidth + 1 and currentMap % mapWidth ~= 0) then
       map.active = true
     else
       map.active = false
@@ -19,7 +25,7 @@ end
 function Player.draw()
   local x = (Player.x - camera[1]) * scale + origin[1]
   local y = (Player.y - camera[2]) * scale + origin[2]
-  love.graphics.draw(Player.sprite, x, y, 0, Player.scale)
+  love.graphics.print("@", x, y)
 end
 
 function Player.update(input)
@@ -51,18 +57,103 @@ function Player.update(input)
 
   local mapX = Player.x - maps[currentMap].x
   local mapY = Player.y - maps[currentMap].y
+  local hitWall = false
 
-  if dx ~= 0 and mapX + dx < Map.width and mapX + dx > 0 and maps[currentMap].tiles[mapX + dx + (mapY * Map.width) + 1] == "#" then
+  if dx ~= 0 and mapX + dx < Map.width and mapX + dx >= 0 and maps[currentMap].tiles[mapX + dx + (mapY * Map.width) + 1].weight == -1 then
     dx = 0
+    if dy == 0 then
+      hitWall = true
+    end
   end
-  if dy ~= 0 and mapY + dy < Map.width and mapY + dy > 0 and maps[currentMap].tiles[mapX + ((mapY + dy) * Map.width) + 1] == "#" then
+  if dy ~= 0 and mapY + dy < Map.width and mapY + dy >= 0 and maps[currentMap].tiles[mapX + ((mapY + dy) * Map.width) + 1].weight == -1 then
     dy = 0
+    if dx == 0 then
+      hitWall = true
+    end
   end
-  if mapX + dx < Map.width and mapX + dx > 0 and mapY + dy < Map.width and mapY + dy > 0 and maps[currentMap].tiles[mapX + dx + ((mapY + dy) * Map.width) + 1] == "#" then
+  if mapX + dx < Map.width and mapX + dx >= 0 and mapY + dy < Map.width and mapY + dy >= 0 and maps[currentMap].tiles[mapX + dx + ((mapY + dy) * Map.width) + 1].weight == -1 then
     dx = 0
     dy = 0
+    hitWall = true
   end
-  Player.x = Player.x + dx
-  Player.y = Player.y + dy
-  currentMap = math.floor(Player.x / Map.width) + math.floor(Player.y / Map.width) * mapWidth + 1
+
+  if hitWall then
+     pushMessage("It's a wall.")
+  else
+    for index, enemy in pairs(Enemy.enemies) do
+      if enemy.hp > 0 and enemy.x == Player.x + dx and enemy.y == Player.y + dy then
+        Enemy.damage(enemy, Player.weaponDamage)
+         pushMessage("You hit " .. enemy.symbol .. " for " .. Player.weaponDamage .. " damage!")
+        return
+      end
+    end
+    Player.x = Player.x + dx
+    Player.y = Player.y + dy
+    currentMap = math.floor(Player.x / Map.width) + math.floor(Player.y / Map.width) * mapWidth + 1
+    updatePath()
+  end
+end
+
+function updatePath()
+  for mapi, map in pairs(maps) do
+    if map.active then
+      for tilei, tile in pairs(map.tiles) do
+        if tile.weight ~= -1 then
+          tile.weight = math.huge
+        end
+      end
+    end
+  end
+  local nodeX = Player.x - maps[currentMap].x
+  local nodeY = Player.y - maps[currentMap].y
+  local currentNode = maps[currentMap].tiles[nodeX + nodeY * Map.width + 1]
+  currentNode.weight = 0
+  for index, nextTile in pairs({{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}) do
+    checkNode(nodeX + nextTile[1], nodeY + nextTile[2], currentMap, 1)
+  end
+end
+
+function checkNode(x, y, map, weight)
+  if x < 0 then
+    if map % mapWidth == 1 then
+      return
+    end
+    map = map - 1
+    x = x % Map.width
+  end
+  if x >= Map.width then
+    if map % mapWidth == 0 then
+      return
+    end
+    map = map + 1
+    x = x % Map.width
+  end
+  if y < 0 then
+    if math.floor(map / mapWidth) <= 0 then
+      return
+    end
+    map = map - mapWidth
+    y = y % Map.width
+  end
+  if y >= Map.width then
+    if math.ceil(map / mapWidth) >= mapWidth then
+      return
+    end
+    map = map + mapWidth
+    y = y % Map.width
+  end
+  local currentNode = maps[map].tiles[x + y * Map.width + 1]
+  if weight < currentNode.weight then
+    currentNode.weight = weight
+    if weight >= pathfindDist then
+      return
+    end
+    for index, nextTile in pairs({{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}) do
+      checkNode(x + nextTile[1], y + nextTile[2], map, weight + 1)
+    end
+  end
+end
+
+function Player.damage(val)
+   pushMessage("You took " .. val .. " damage!")
 end
