@@ -20,11 +20,23 @@ function Player.load()
       map.active = false
     end
   end
+
+
+  if Player.x > camera[1] + 8 then
+    camera[1] = Player.x - 8
+  elseif Player.x < camera[1] + 6 then
+    camera[1] = Player.x - 6
+  end
+  if Player.y > camera[2] + 8 then
+    camera[2] = Player.y - 8
+  elseif Player.y < camera[2] + 6 then
+    camera[2] = Player.y - 6
+  end
 end
 
 function Player.draw()
-  local x = (Player.x - camera[1]) * scale + origin[1]
-  local y = (Player.y - camera[2]) * scale + origin[2]
+  local x = (Player.x - camera[1]) * scale
+  local y = (Player.y - camera[2]) * scale
   love.graphics.print("@", x, y, 0, scale / fontsize)
 end
 
@@ -169,8 +181,8 @@ function Player.attack(enemy)
   for i = 1, Player.weaponDamage[1] do
     damage = damage + math.random(Player.weaponDamage[2])
   end
-  Enemy.damage(enemy, damage)
   pushMessage("You hit " .. enemy.symbol .. " with " .. Player.weaponDamage[1] .. "d" .. Player.weaponDamage[2] .. " for " .. damage .. "!")
+  Enemy.damage(enemy, damage)
 end
 
 function Player.damage(val)

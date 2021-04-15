@@ -46,8 +46,8 @@ function Map:draw()
     return
   end
   for index, tile in pairs(self.tiles) do
-    local x = ((((index - 1) % Map.width) + self.x - camera[1]) * scale) + origin[1]
-    local y = ((math.floor((index - 1) / Map.width) + self.y - camera[2]) * scale) + origin[2]
+    local x = (((index - 1) % Map.width) + self.x - camera[1]) * scale
+    local y = (math.floor((index - 1) / Map.width) + self.y - camera[2]) * scale
     if tile.type == "#" then
       love.graphics.rectangle("fill", x, y, scale, scale)
     else

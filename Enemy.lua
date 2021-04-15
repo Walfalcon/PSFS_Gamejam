@@ -110,10 +110,10 @@ function Enemy.createQueue()
 end
 
 function Enemy.draw(enemy)
-  local x = (enemy.x - camera[1]) * scale + origin[1]
-  local y = (enemy.y - camera[2]) * scale + origin[2]
+  local x = (enemy.x - camera[1]) * scale
+  local y = (enemy.y - camera[2]) * scale
   if enemy.hp <= 0 then
-    love.graphics.setColor(0.8, 0.1, 0.1)
+    love.graphics.setColor(1, 0, 0)
     love.graphics.rectangle("fill", x, y, scale, scale)
     love.graphics.setColor(1, 1, 1)
     return

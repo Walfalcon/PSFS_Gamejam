@@ -27,7 +27,6 @@ function love.load()
   windowFlags.minheight = resolution[2]
   love.window.setMode(realRes[1], realRes[2], windowFlags)
   love.window.setTitle("UNCHARTED FEAT. DRAKE")
-  love.graphics.setScissor(origin[1], origin[2], realRes[1], realRes[2])
   love.graphics.setColor(1, 1, 1)
   font = love.graphics.newFont("joystix.monospace.ttf", fontsize)
   font:setLineHeight(fontsize / font:getHeight())
@@ -35,11 +34,8 @@ function love.load()
   love.graphics.setLineWidth(scale/16)
   love.graphics.setLineStyle("smooth")
   music = love.audio.newSource("Uncharted1.wav", "stream")
-  effect = moonshine(moonshine.effects.glow)
+  effect = moonshine(realRes[1], realRes[2], moonshine.effects.glow)
                     .chain(moonshine.effects.crt)
-
-  effect.crt.offset = origin
-  effect.crt.resolution = realRes
   effect.crt.feather = 0.05
 end
 
@@ -54,9 +50,9 @@ function love.resize(width, height)
   scale = realRes[2] / resolution[2]
   origin[1] = (width - realRes[1]) / 2
   origin[2] = (height - realRes[2]) / 2
-  effect.crt.offset = origin
-  effect.crt.resolution = realRes
-  effect.resize(width, height)
+  effect.resize(realRes[1], realRes[2])
+  effect.glow.size = 1
+  effect.glow.strength = (5 * 16 / 512) * scale
 end
 
 function setup()
@@ -159,19 +155,17 @@ function love.keypressed(key, scancode, isrepeat)
 end
 
 function love.draw()
-  love.graphics.setScissor(origin[1], origin[2], realRes[1], realRes[2])
-  local x, y, w, h = love.graphics.getScissor()
-  debug = x .. " " .. y .. "\n" .. w .. " " .. h
   effect(function()
     if menu == "messages" then
       for index, message in pairs(messages) do
-        love.graphics.print(message, origin[1], origin[2] + realRes[2] - (scale / 2) * index, 0, 0.5 * scale / fontsize)
+        love.graphics.print(message, scale, realRes[2] - (scale / 2) * (index + 1), 0, 0.5 * scale / fontsize)
         if index == 1 then
           love.graphics.setColor(0.5, 0.5, 0.5)
         end
       end
       love.graphics.setColor(1, 1, 1)
     elseif menu == "game" then
+      love.graphics.setScissor(0, 0, realRes[1], realRes[2] - (2 * scale))
       for index, enemy in pairs(Enemy.enemies) do
         if maps[enemy.currentMap].active then
           Enemy.draw(enemy)
@@ -182,23 +176,24 @@ function love.draw()
       for index, map in pairs(maps) do
         map:draw()
       end
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.rectangle("fill", origin[1], origin[2] + realRes[2] - scale, realRes[1], scale)
+      love.graphics.setScissor()
       if messages[2] then
         love.graphics.setColor(0.5, 0.5, 0.5)
-        love.graphics.print(messages[2], origin[1], origin[2] + realRes[2] - scale, 0, 0.5 * scale / fontsize)
+        love.graphics.print(messages[2], scale, realRes[2] - 1.5 * scale, 0, 0.5 * scale / fontsize)
+        if messages[3] then
+          love.graphics.print(messages[3], scale, realRes[2] - 2 * scale, 0, 0.5 * scale / fontsize)
+        end
       end
       love.graphics.setColor(1, 1, 1)
       if messages[1] then
-        love.graphics.print(messages[1], origin[1], origin[2] + realRes[2] - (scale/2), 0, 0.5 * scale / fontsize)
+        love.graphics.print(messages[1], scale, realRes[2] - scale, 0, 0.5 * scale / fontsize)
       end
     else
       local title = "Press S to Start!"
-      love.graphics.print(title, origin[1] + ((realRes[1] - font:getWidth(title) * scale / fontsize) / 2), origin[2] + ((realRes[2] - scale) / 2), 0, scale / fontsize)
+      love.graphics.print(title, (realRes[1] - font:getWidth(title) * scale / fontsize) / 2, (realRes[2] - scale) / 2, 0, scale / fontsize)
     end
   end)
   love.graphics.print(debug, origin[1], origin[2], 0, scale / fontsize)
-  love.graphics.setScissor()
 end
 
 function pushMessage(text)

@@ -82,7 +82,7 @@ moonshine.chain = function(w,h,effect)
     -- present result
     love.graphics.setShader()
     love.graphics.setCanvas(canvas)
-    love.graphics.draw(front,0,0)
+    love.graphics.draw(front, origin[1], origin[2])
 
     -- restore state
     love.graphics.setBlendMode(blendmode)

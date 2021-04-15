@@ -58,7 +58,11 @@ return function(moonshine)
     threshold:send("min_luma", math.max(0, math.min(1, tonumber(v) or 0.5)))
   end
 
-  local scene = love.graphics.newCanvas()
+
+  local scene = love.graphics.newCanvas(realRes[1], realRes[2])
+  setters.size = function(v)
+    scene = love.graphics.newCanvas(realRes[1], realRes[2])
+  end
   local draw = function(buffer)
     local front, back = buffer() -- scene so far is in `back'
     scene, back = back, scene    -- save it for second draw below
@@ -70,7 +74,7 @@ return function(moonshine)
     love.graphics.draw(scene)
 
     -- 2nd pass: apply blur shader in x
-    blurshader:send('direction', {1 / love.graphics.getWidth(), 0})
+    blurshader:send('direction', {1 / realRes[1], 0})
     love.graphics.setCanvas(back)
     love.graphics.clear()
     love.graphics.setShader(blurshader)
@@ -86,7 +90,7 @@ return function(moonshine)
     love.graphics.draw(scene) -- original scene
 
     -- second pass of light blurring
-    blurshader:send('direction', {0, 1 / love.graphics.getHeight()})
+    blurshader:send('direction', {0, 1 / realRes[2]})
     love.graphics.setShader(blurshader)
     love.graphics.draw(back)
 

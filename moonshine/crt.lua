@@ -23,31 +23,23 @@ return function(moonshine)
     extern vec2 distortionFactor;
     extern vec2 scaleFactor;
     extern number feather;
-    extern vec2 offset;
     extern vec2 resolution;
 
     vec4 effect(vec4 color, Image tex, vec2 uv, vec2 px) {
       // to barrel coordinates
-      vec2 screenSize = resolution + offset * 2;
-      vec2 fakeUv = (uv * screenSize - offset) / resolution;
-      fakeUv = fakeUv * 2.0 - vec2(1.0);
       uv = uv * 2.0 - vec2(1.0);
 
 
       // distort
       uv *= scaleFactor;
-      fakeUv *= scaleFactor;
       uv += (uv.yx*uv.yx) * uv * (distortionFactor - 1.0);
-      fakeUv += (fakeUv.yx*fakeUv.yx) * fakeUv * (distortionFactor - 1.0);
-      number mask = (1.0 - smoothstep(1.0-feather,1.0,abs(fakeUv.x)))
-                  * (1.0 - smoothstep(1.0-feather,1.0,abs(fakeUv.y)));
+      number mask = (1.0 - smoothstep(1.0-feather,1.0,abs(uv.x)))
+                  * (1.0 - smoothstep(1.0-feather,1.0,abs(uv.y)));
 
       // to cartesian coordinates
       uv = (uv + vec2(1.0)) / 2.0;
-      fakeUv = (fakeUv + vec2(1.0)) / 2.0;
-      fakeUv = (fakeUv * resolution + offset) / screenSize;
 
-      return color * Texel(tex, fakeUv) * mask;
+      return color * Texel(tex, uv) * mask;
     }
   ]]
 
@@ -73,18 +65,6 @@ return function(moonshine)
   end
 
   setters.feather = function(v) shader:send("feather", v) end
-
-  setters.offset = function(v)
-    if type(v) == "table" and #v == 2 then
-      shader:send("offset", v)
-    else
-      error("Invalid value for 'offset'")
-    end
-  end
-
-  setters.resolution = function(v)
-    shader:send("resolution", v)
-  end
 
   local defaults = {
     distortionFactor = {1.06, 1.065},
