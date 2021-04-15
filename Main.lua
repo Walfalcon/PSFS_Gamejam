@@ -40,7 +40,8 @@ function love.load()
   love.graphics.setFont(font)
   love.graphics.setLineWidth(scale/16)
   love.graphics.setLineStyle("smooth")
-
+  music = love.audio.newSource("Uncharted1.wav", "stream")
+  love.audio.play(music)
   effect = moonshine(moonshine.effects.glow)
                     .chain(moonshine.effects.vignette)
                     .chain(moonshine.effects.crt)
@@ -65,63 +66,66 @@ function love.update(dt)
 end
 
 function love.keypressed(key, scancode, isrepeat)
-  if menu == "updates" then
+  if menu == "main" then
+
+  elseif menu == "updates" then
     menu = "game"
     return
-  end
-  local input = nil
+  else
+    local input = nil
 
-  if scancode == "q" or key == "7" then
-    input = "ul"
-  elseif scancode == "w" or scancode == "up" or key == "8" then
-    input = "u"
-  elseif scancode == "e" or key == "9" then
-    input = "ur"
-  elseif scancode == "a" or scancode == "left" or key == "4" then
-    input = "l"
-  elseif scancode == "s" or scancode == "space" or key == "5" then
-    input = "wait"
-  elseif scancode == "d" or scancode == "right" or key == "6" then
-    input = "r"
-  elseif scancode == "z" or key == "1" then
-    input = "dl"
-  elseif scancode == "x" or scancode == "down" or key == "2" then
-    input = "d"
-  elseif scancode == "c" or key == "3" then
-    input = "dr"
-  elseif scancode == "m" then
-    menu = "messages"
-    return
-  end
+    if scancode == "q" or key == "7" then
+      input = "ul"
+    elseif scancode == "w" or scancode == "up" or key == "8" then
+      input = "u"
+    elseif scancode == "e" or key == "9" then
+      input = "ur"
+    elseif scancode == "a" or scancode == "left" or key == "4" then
+      input = "l"
+    elseif scancode == "s" or scancode == "space" or key == "5" then
+      input = "wait"
+    elseif scancode == "d" or scancode == "right" or key == "6" then
+      input = "r"
+    elseif scancode == "z" or key == "1" then
+      input = "dl"
+    elseif scancode == "x" or scancode == "down" or key == "2" then
+      input = "d"
+    elseif scancode == "c" or key == "3" then
+      input = "dr"
+    elseif scancode == "m" then
+      menu = "messages"
+      return
+    end
 
-  if input and menu == "game" then
-    Player.update(input)
-    Enemy.createQueue()
-    for index, enemy in pairs(Enemy.enemyQueue) do
-      if enemy.moveclock >= 1 then
-        if Enemy.move(enemy) then
-          enemy.moveclock = enemy.moveclock - 1
-          if enemy.moveclock >= 1 then
+    if input and menu == "game" then
+      Player.update(input)
+      Enemy.createQueue()
+      for index, enemy in pairs(Enemy.enemyQueue) do
+        if enemy.moveclock >= 1 then
+          if Enemy.move(enemy) then
+            enemy.moveclock = enemy.moveclock - 1
+            if enemy.moveclock >= 1 then
+              table.insert(Enemy.enemyQueue, enemy)
+            end
+          else
             table.insert(Enemy.enemyQueue, enemy)
           end
-        else
-          table.insert(Enemy.enemyQueue, enemy)
         end
       end
-    end
-    for index, map in pairs(maps) do
-      if index == currentMap or
-        index == currentMap - mapWidth or
-        index == currentMap + mapWidth or
-        (index == currentMap - 1 and currentMap % mapWidth ~= 1) or
-        (index == currentMap + 1 and currentMap % mapWidth ~= 0) or
-        (index == currentMap - mapWidth - 1 and currentMap % mapWidth ~= 1) or
-        (index == currentMap - mapWidth + 1 and currentMap % mapWidth ~= 0) or
-        (index == currentMap + mapWidth - 1 and currentMap % mapWidth ~= 1) or
-        (index == currentMap + mapWidth + 1 and currentMap % mapWidth ~= 0) then
-        map.active = true
-      else
-        map.active = false
+      for index, map in pairs(maps) do
+        if index == currentMap or
+          index == currentMap - mapWidth or
+          index == currentMap + mapWidth or
+          (index == currentMap - 1 and currentMap % mapWidth ~= 1) or
+          (index == currentMap + 1 and currentMap % mapWidth ~= 0) or
+          (index == currentMap - mapWidth - 1 and currentMap % mapWidth ~= 1) or
+          (index == currentMap - mapWidth + 1 and currentMap % mapWidth ~= 0) or
+          (index == currentMap + mapWidth - 1 and currentMap % mapWidth ~= 1) or
+          (index == currentMap + mapWidth + 1 and currentMap % mapWidth ~= 0) then
+          map.active = true
+        else
+          map.active = false
+        end
       end
     end
   end
@@ -129,7 +133,15 @@ end
 
 function love.draw()
   effect(function()
-    if menu == "game" then
+    if menu == "messages" then
+      for index, message in pairs(messages) do
+        love.graphics.print(message, origin[1], realRes[2] - (scale/2) * index, 0, 0.5)
+        if index == 1 then
+          love.graphics.setColor(0.5, 0.5, 0.5)
+        end
+      end
+      love.graphics.setColor(1, 1, 1)
+    else
       for index, enemy in pairs(Enemy.enemies) do
         if maps[enemy.currentMap].active then
           Enemy.draw(enemy)
@@ -150,18 +162,7 @@ function love.draw()
       if messages[1] then
         love.graphics.print(messages[1], origin[1], realRes[2] - (scale/2), 0, 0.5)
       end
-    elseif menu == "messages" then
-      if messages[1] then
-      end
-
-      for index, message in pairs(messages) do
-        love.graphics.print(message, origin[1], realRes[2] - (scale/2) * index, 0, 0.5)
-        if index == 1 then
-          love.graphics.setColor(0.5, 0.5, 0.5)
-        end
-      end
-      love.graphics.setColor(1, 1, 1)
-    end
+    else
   end)
   love.graphics.print(debug, origin[1], origin[2])
 end
