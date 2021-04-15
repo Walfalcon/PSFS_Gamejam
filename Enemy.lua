@@ -118,7 +118,7 @@ function Enemy.draw(enemy)
     love.graphics.setColor(1, 1, 1)
     return
   end
-  love.graphics.print(enemy.symbol, x, y)
+  love.graphics.print(enemy.symbol, x, y, 0, scale / fontsize)
 end
 
 function Enemy.damage(enemy, value)

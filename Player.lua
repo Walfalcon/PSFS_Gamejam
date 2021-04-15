@@ -1,9 +1,9 @@
 Player = {}
-Player.x = 3
-Player.y = 3
-Player.weaponDamage = 1
 
 function Player.load()
+  Player.x = 3
+  Player.y = 3
+  Player.weaponDamage = {1, 4}
   currentMap = math.floor(Player.x / Map.width) + math.floor(Player.y / Map.width) * mapWidth + 1
   for index, map in pairs(maps) do
     if index == currentMap or
@@ -25,7 +25,7 @@ end
 function Player.draw()
   local x = (Player.x - camera[1]) * scale + origin[1]
   local y = (Player.y - camera[2]) * scale + origin[2]
-  love.graphics.print("@", x, y)
+  love.graphics.print("@", x, y, 0, scale / fontsize)
 end
 
 function Player.update(input)
@@ -82,8 +82,7 @@ function Player.update(input)
   else
     for index, enemy in pairs(Enemy.enemies) do
       if enemy.hp > 0 and enemy.x == Player.x + dx and enemy.y == Player.y + dy then
-        Enemy.damage(enemy, Player.weaponDamage)
-         pushMessage("You hit " .. enemy.symbol .. " for " .. Player.weaponDamage .. " damage!")
+        Player.attack(enemy)
         return
       end
     end
@@ -91,6 +90,17 @@ function Player.update(input)
     Player.y = Player.y + dy
     currentMap = math.floor(Player.x / Map.width) + math.floor(Player.y / Map.width) * mapWidth + 1
     updatePath()
+
+    if Player.x > camera[1] + 8 then
+      camera[1] = Player.x - 8
+    elseif Player.x < camera[1] + 6 then
+      camera[1] = Player.x - 6
+    end
+    if Player.y > camera[2] + 8 then
+      camera[2] = Player.y - 8
+    elseif Player.y < camera[2] + 6 then
+      camera[2] = Player.y - 6
+    end
   end
 end
 
@@ -152,6 +162,15 @@ function checkNode(x, y, map, weight)
       checkNode(x + nextTile[1], y + nextTile[2], map, weight + 1)
     end
   end
+end
+
+function Player.attack(enemy)
+  local damage = 0
+  for i = 1, Player.weaponDamage[1] do
+    damage = damage + math.random(Player.weaponDamage[2])
+  end
+  Enemy.damage(enemy, damage)
+  pushMessage("You hit " .. enemy.symbol .. " with " .. Player.weaponDamage[1] .. "d" .. Player.weaponDamage[2] .. " for " .. damage .. "!")
 end
 
 function Player.damage(val)
