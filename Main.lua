@@ -133,7 +133,9 @@ end
 
 function love.draw()
   effect(function()
-    if menu == "messages" then
+    if menu == "main" then
+      love.
+    elseif menu == "messages" then
       for index, message in pairs(messages) do
         love.graphics.print(message, origin[1], realRes[2] - (scale/2) * index, 0, 0.5)
         if index == 1 then
