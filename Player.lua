@@ -93,7 +93,9 @@ function Player.update(input)
      pushMessage("It's a wall.")
   else
     for index, enemy in pairs(Enemy.enemies) do
-      if enemy.hp > 0 and enemy.x == Player.x + dx and enemy.y == Player.y + dy then
+      if (enemy.hp > 0 and enemy.x == Player.x + dx and enemy.y == Player.y + dy) or
+        (enemy.hp > 0 and enemy.x == Player.x + dx and enemy.y == Player.y) or
+        (enemy.hp > 0 and enemy.x == Player.x and enemy.y == Player.y + dy) then
         Player.attack(enemy)
         return
       end

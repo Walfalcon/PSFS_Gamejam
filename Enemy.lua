@@ -1,6 +1,7 @@
 Enemy = {}
 Enemy.enemies = {}
 Enemy.enemyQueue = {}
+Enemy.sightDistance = 6
 
 function Enemy.load(x, y, type)
   local enemy = {}
@@ -9,26 +10,32 @@ function Enemy.load(x, y, type)
   enemy.x = x
   enemy.y = y
   enemy.currentMap = math.floor(enemy.x / Map.width) + math.floor(enemy.y / Map.width) * mapWidth + 1
+  enemy.seenPlayer = false
   if type == "a" then
-    enemy.hp = 3
+    enemy.maxHp = 4
     enemy.speed = 1
     enemy.damage = 1
+  elseif type == "b" then
+    enemy.maxHp = 4
+    enemy.speed = 2
+    enemy.damage = 1
   else
-    enemy.hp = 3
+    enemy.maxHp = 3
     enemy.speed = 1
     enemy.damage = 1
   end
+  enemy.hp = enemy.maxHp
   table.insert(Enemy.enemies, enemy)
 end
 
 function Enemy.move(enemy)
-  if not maps[currentMap].active then
-    return true
-  end
   local nodeX = enemy.x - maps[enemy.currentMap].x
   local nodeY = enemy.y - maps[enemy.currentMap].y
   local currentNode = maps[enemy.currentMap].tiles[nodeX + nodeY * Map.width + 1]
   if currentNode.weight == math.huge then
+    return true
+  end
+  if not seenPlayer and not Enemy.look(enemy) then
     return true
   end
   local nextWeight = currentNode.weight
@@ -65,41 +72,41 @@ function Enemy.move(enemy)
 end
 
 function Enemy.checkNode(x, y, map)
-  if x < 0 then
+  while x < 0 do
     if map % mapWidth == 1 then
       return -1, nil, nil
     end
     map = map - 1
-    x = x % Map.width
+    x = x + Map.width
   end
-  if x >= Map.width then
+  while x >= Map.width do
     if map % mapWidth == 0 then
       return -1, nil, nil
     end
     map = map + 1
-    x = x % Map.width
+    x = x - Map.width
   end
-  if y < 0 then
+  while y < 0 do
     if math.floor(map / mapWidth) <= 0 then
       return -1, nil, nil
     end
     map = map - mapWidth
-    y = y % Map.width
+    y = y + Map.width
   end
-  if y >= Map.width then
+  while y >= Map.width do
     if math.ceil(map / mapWidth) >= mapWidth then
       return -1, nil, nil
     end
     map = map + mapWidth
-    y = y % Map.width
+    y = y - Map.width
   end
   local node = maps[map].tiles[x + y * Map.width + 1]
   return node.weight, {x, y}, map
 end
 
 function Enemy.createQueue()
-  for index, enemy in pairs(Enemy.enemyQueue) do
-    enemy = nil
+  for index in pairs(Enemy.enemyQueue) do
+    Enemy.enemyQueue[index] = nil
   end
   for index, enemy in pairs(Enemy.enemies) do
     if enemy.hp > 0 and maps[enemy.currentMap].active then
@@ -126,4 +133,40 @@ function Enemy.damage(enemy, value)
   if enemy.hp <= 0 then
      pushMessage(enemy.symbol .. " died!")
   end
+end
+
+function Enemy.look(enemy)
+  local rayDX = Player.x - enemy.x
+  local rayDY = Player.y - enemy.y
+  local xDY = rayDY / math.abs(rayDX)
+  local xDX = 1
+  if rayDX < 0 then
+    xDX = -1
+  end
+  local yDX = rayDX / math.abs(rayDY)
+  local yDY = 1
+  if rayDY < 0 then
+    yDY = -1
+  end
+  local rayLen = math.sqrt(rayDX * rayDX + rayDY * rayDY)
+  local ray = {0, 0}
+  while math.sqrt(ray[1] * ray[1] + ray[2] * ray[2]) < rayLen do
+    local checkNode = Enemy.checkNode(enemy.x + ray[1], math.floor(ray[2]) + enemy.y, enemy.currentMap)
+    if checkNode == -1 or math.sqrt(ray[1] * ray[1] + ray[2] * ray[2]) > Enemy.sightDistance then
+      return false
+    end
+    ray[1] = ray[1] + xDX
+    ray[2] = ray[2] + xDY
+  end
+  ray = {0, 0}
+  while math.sqrt(ray[1] * ray[1] + ray[2] * ray[2]) < rayLen do
+    local checkNode = Enemy.checkNode(enemy.x + math.floor(ray[1]), ray[2] + enemy.y, enemy.currentMap)
+    if checkNode == -1 or math.sqrt(ray[1] * ray[1] + ray[2] * ray[2]) > Enemy.sightDistance then
+      return false
+    end
+    ray[1] = ray[1] + yDX
+    ray[2] = ray[2] + yDY
+  end
+  seenPlayer = true
+  return true
 end

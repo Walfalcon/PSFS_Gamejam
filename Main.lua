@@ -124,7 +124,7 @@ function love.keypressed(key, scancode, isrepeat)
             if enemy.moveclock >= 1 then
               table.insert(Enemy.enemyQueue, enemy)
             end
-          else
+          elseif index ~= #Enemy.enemyQueue then
             table.insert(Enemy.enemyQueue, enemy)
           end
         end

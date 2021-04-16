@@ -18,8 +18,8 @@ function Map:create(path)
         weight = math.huge
       elseif type == "#" then
         weight = -1
-      elseif type == "a" then
-        Enemy.load(x, y, "a")
+      elseif string.byte(type) and string.byte(type) >= 97 and string.byte(type) <= 122 then
+        Enemy.load(x, y, type)
         type = " "
         weight = math.huge
       elseif type == "@" then
